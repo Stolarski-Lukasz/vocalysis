@@ -11,6 +11,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         'praat-parselmouth>=0.4.4',
+        'numpy>=1.26.0',
     ],
     long_description=description,
     long_description_content_type='text/markdown',
