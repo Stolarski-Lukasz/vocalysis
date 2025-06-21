@@ -4,39 +4,29 @@ import numpy as np
 
 def measure_pitch(audio_path=None, sound_object=None, pitch_object=None, min_pitch=75, max_pitch=500):
     """
-    Compute pitch statistics (in Hz) from a WAV file or Parselmouth objects.
+    Compute basic pitch statistics (in Hz) from an audio file or Parselmouth object.
 
     One of `audio_path`, `sound_object`, or `pitch_object` must be provided.
     If multiple are given, the function uses the first available in this order:
     `pitch_object` > `sound_object` > `audio_path`.
 
     Args:
-        audio_path (str, optional): Path to an audio file. It could be a WAV file or any format supported by Parselmouth.
+        audio_path (str, optional): Path to an audio file (WAV or other Parselmouth-supported format).
         sound_object (parselmouth.Sound, optional): A precomputed sound object.
         pitch_object (parselmouth.Pitch, optional): A precomputed pitch object.
         min_pitch (float, optional): Minimum pitch in Hz. Defaults to 75.
         max_pitch (float, optional): Maximum pitch in Hz. Defaults to 500.
 
     Returns:
-        dict: A dictionary of pitch statistics based on voiced frames, containing:
-            - 'median': Median pitch.
-            - 'mean': Mean pitch.
-            - 'std': Standard deviation of pitch.
-            - 'min': Minimum pitch.
-            - 'max': Maximum pitch.
+        dict: Pitch statistics over voiced frames with keys:
+            'median', 'mean', 'std', 'min', and 'max' (all as strings, e.g. "142.537 Hz").
+            If no voiced frames are found, all values are `None`.
 
-        If no voiced frames are found, all values are `None`.
-
-    Raises:
-        ValueError: If none of the input sources (`audio_path`, `sound_object`, or `pitch_object`) is provided.
-
-    Examples:
-        Basic usage with a WAV file:
-
-        from vocalysis import measure_pitch
-
-        stats = measure_pitch(audio_path="example.wav")
-        print(stats["mean"])  # e.g. '142.537 Hz'
+    Example:
+        >>> from vocalysis import measure_pitch
+        >>> stats = measure_pitch(audio_path="path/to/speech.wav")
+        >>> print(stats["mean"])
+        '142.537 Hz'
     """
 
     if pitch_object is not None:
@@ -78,33 +68,32 @@ def measure_pitch(audio_path=None, sound_object=None, pitch_object=None, min_pit
 
 def measure_pulses(audio_path=None, sound_object=None, pitch_object=None, point_process=None, min_pitch=75, max_pitch=500):
     """
-    Measure pulse-related statistics from a WAV file using Parselmouth.
+    Compute pulse-related statistics from an audio file or Parselmouth object.
+
+    One of `audio_path`, `sound_object`, or `pitch_object` must be provided.
+    If multiple are given, the function uses the first available in this order:
+    `pitch_object` > `sound_object` > `audio_path`.
 
     Args:
-        audio_path (str, optional): Path to an audio file. It could be a WAV file or any format supported by Parselmouth. Used if `sound_object` and `pitch_object` are not provided.
-        sound_object (parselmouth.Sound, optional): Precomputed sound object.
-        pitch_object (parselmouth.Pitch, optional): Precomputed pitch object.
-        point_process (parselmouth.PointProcess, optional): Precomputed point process object.
+        audio_path (str, optional): Path to an audio file (WAV or Parselmouth-supported format).
+        sound_object (parselmouth.Sound, optional): A precomputed sound object.
+        pitch_object (parselmouth.Pitch, optional): A precomputed pitch object.
+        point_process (parselmouth.PointProcess, optional): A precomputed point process object.
         min_pitch (float, optional): Minimum pitch in Hz. Defaults to 75.
         max_pitch (float, optional): Maximum pitch in Hz. Defaults to 500.
 
     Returns:
-        dict: A dictionary containing the following keys:
-            - 'num_pulses': Number of detected pulses.
+        dict: Pulse statistics with the following keys:
+            - 'num_pulses': Total number of pulses.
             - 'num_periods': Number of periods between pulses.
-            - 'mean_period': Mean period (in seconds), or None if not computable.
-            - 'std_period': Standard deviation of period (in seconds), or None if not computable.
+            - 'mean_period': Mean period in seconds (as string), or `None` if not computable.
+            - 'std_period': Standard deviation of period in seconds (as string), or `None`.
 
-    Raises:
-        ValueError: If neither `point_process` nor a way to compute it (`sound_object` or `audio_path`) is provided.
-
-    Examples:
-        Basic usage with a WAV file:
-
-        from vocalysis import measure_pulses
-
-        stats = measure_pulses(audio_path="example.wav")
-        print(stats["mean_period"])  # e.g. '0.0050364095 seconds'
+    Example:
+        >>> from vocalysis import measure_pulses
+        >>> stats = measure_pulses(audio_path="path/to/speech.wav")
+        >>> print(stats["mean_period"])
+        '0.0050364095 seconds'
     """
 
     # Step 1: Use the given PointProcess if available
@@ -151,44 +140,31 @@ def measure_pulses(audio_path=None, sound_object=None, pitch_object=None, point_
 
 def measure_voicing(audio_path=None, sound_object=None, pitch_object=None, point_process=None, min_pitch=75, max_pitch=500):
     """
-    Analyze voicing characteristics in a WAV file using Parselmouth.
+    Compute voicing statistics from an audio file or Parselmouth objects.
 
-    This function measures the proportion of unvoiced frames, detects voice breaks,
-    and calculates the degree of voice breaks based on inter-pulse intervals derived 
-    from a PointProcess representation of the signal.
-    
-    You must either:
-    - Provide only `audio_path` (recommended for typical usage), in which case all necessary objects will be computed internally, OR
-    - Provide all of the following: `sound_object`, `pitch_object`, and `point_process`.
+    To run the analysis, you must provide at least `audio_path` or `sound_object`.
+    If `point_process` is supplied, then `pitch_object` must also be given,
+    and either `sound_object` or `audio_path` is still required to compute duration.
 
     Args:
-        audio_path (str, optional): Path to an audio file (WAV or other formats supported by Parselmouth).
-        sound_object (parselmouth.Sound, optional): Pre-loaded Parselmouth Sound object.
-        pitch_object (parselmouth.Pitch, optional): Pitch object corresponding to the sound.
-        point_process (parselmouth.PointProcess, optional): PointProcess object for glottal pulses.
-        min_pitch (float, optional): Minimum pitch in Hz used for pitch tracking and determining the threshold 
-            for voice breaks. Defaults to 75.
-        max_pitch (float, optional): Maximum pitch in Hz for pitch tracking. Defaults to 500.
+        audio_path (str, optional): Path to an audio file (WAV or supported format).
+        sound_object (parselmouth.Sound, optional): A precomputed sound object.
+        pitch_object (parselmouth.Pitch, optional): A precomputed pitch object.
+        point_process (parselmouth.PointProcess, optional): A precomputed point process.
+        min_pitch (float, optional): Minimum pitch in Hz. Defaults to 75.
+        max_pitch (float, optional): Maximum pitch in Hz. Defaults to 500.
 
     Returns:
-        dict: A dictionary with the following voicing statistics:
-            - 'unvoiced_fraction' (str): Percentage of frames that are unvoiced, formatted to three decimal places (e.g., '12.345%').
-            - 'num_voice_breaks' (int): Number of detected voice breaks (i.e., silent intervals between consecutive pulses
-            longer than 1.25 divided by `min_pitch`).
-            - 'degree_voice_breaks' (str): Total duration of voice breaks divided by total duration of the signal,
-            formatted as a percentage to three decimal places (e.g., '4.789%').
+        dict: Voicing statistics with the following keys:
+            - 'unvoiced_fraction': Percentage of unvoiced frames (as string, e.g., '12.345%').
+            - 'num_voice_breaks': Number of detected voice breaks.
+            - 'degree_voice_breaks': Total duration of voice breaks as a percentage of signal duration (e.g., '4.789%').
 
-    Notes:
-        - Voice breaks are detected based on the threshold `1.25 / min_pitch`, following standard practice in voice quality analysis.
-        - If the audio file is empty or contains no frames, voicing measures will be returned as `None` or `0`.
-
-    Examples:
-        Basic usage with a WAV file:
-
-        from vocalysis import measure_voicing
-
-        stats = measure_voicing(audio_path="example.wav")
-        print(stats["num_voice_breaks"])  # e.g. '15'
+    Example:
+        >>> from vocalysis import measure_voicing
+        >>> stats = measure_voicing(audio_path="path/to/speech.wav")
+        >>> print(stats["num_voice_breaks"])
+        15
     """
     if point_process is not None:
         if pitch_object is None:
@@ -242,38 +218,30 @@ def measure_voicing(audio_path=None, sound_object=None, pitch_object=None, point
 
 def measure_jitter(audio_path=None, sound_object=None, pitch_object=None, point_process=None, min_pitch=75, max_pitch=600):
     """
-    Measure jitter statistics from a sound or PointProcess using Parselmouth.
+    Measure jitter statistics from an audio file or Parselmouth object.
 
     One of `audio_path`, `sound_object`, or `point_process` must be provided.
     If multiple are given, the function uses the first available in this order:
     `point_process` > `sound_object` > `audio_path`.
 
     Args:
-        audio_path (str, optional): Path to an audio file. It could be a WAV file or any format supported by Parselmouth. Used if `sound_object` is not provided.
+        audio_path (str, optional): Path to an audio file (WAV or other Parselmouth-supported format).
         sound_object (parselmouth.Sound, optional): A precomputed sound object.
         pitch_object (parselmouth.Pitch, optional): A precomputed pitch object.
         point_process (parselmouth.PointProcess, optional): A precomputed point process object.
-        min_pitch (float, optional): Minimum pitch in Hz for pitch analysis. Defaults to 75.
-        max_pitch (float, optional): Maximum pitch in Hz for pitch analysis. Defaults to 600.
+        min_pitch (float, optional): Minimum pitch in Hz. Defaults to 75.
+        max_pitch (float, optional): Maximum pitch in Hz. Defaults to 600.
 
     Returns:
-        dict: A dictionary containing the following jitter measures:
-            - 'jitter_local' (str): Local jitter as a percentage string.
-            - 'jitter_local_absolute' (str): Absolute local jitter (in seconds).
-            - 'jitter_rap' (str): Relative average perturbation (as percentage string).
-            - 'jitter_ppq5' (str): Five-point period perturbation quotient (as percentage string).
-            - 'jitter_ddp' (str): Difference of differences of periods (as percentage string).
+        dict: Jitter statistics with keys:
+            'jitter_local', 'jitter_local_absolute', 'jitter_rap', 'jitter_ppq5', and 'jitter_ddp'.
+            All values are strings formatted as percentages or seconds (e.g. "3.141%").
 
-    Raises:
-        ValueError: If neither `point_process` nor any combination of `sound_object` or `audio_path` is provided.
-
-    Examples:
-        Basic usage with a WAV file:
-
-        from vocalysis import measure_jitter
-
-        stats = measure_jitter(audio_path="example.wav")
-        print(stats["jitter_local"])  # e.g. '4.123%'
+    Example:
+        >>> from vocalysis import measure_jitter
+        >>> stats = measure_jitter(audio_path="path/to/speech.wav")
+        >>> print(stats["jitter_local"])
+        '4.123%'
     """
 
     # Step 1: Use provided PointProcess if available
@@ -309,41 +277,31 @@ def measure_jitter(audio_path=None, sound_object=None, pitch_object=None, point_
 
 def measure_shimmer(audio_path=None, sound_object=None, pitch_object=None, point_process=None, min_pitch=75, max_pitch=500):
     """
-    Measure shimmer statistics from a sound and PointProcess using Parselmouth.
+    Measure shimmer statistics from an audio file or Parselmouth object.
 
     One of `audio_path`, `sound_object`, or `point_process` must be provided.
     If multiple are given, the function uses the first available in this order:
     `point_process` > `sound_object` > `audio_path`.
 
     Args:
-        audio_path (str, optional): Path to an audio file. It could be a WAV file or any format supported by Parselmouth. Used if `sound_object` is not provided.
+        audio_path (str, optional): Path to an audio file (WAV or other Parselmouth-supported format).
         sound_object (parselmouth.Sound, optional): A precomputed sound object.
         pitch_object (parselmouth.Pitch, optional): A precomputed pitch object.
         point_process (parselmouth.PointProcess, optional): A precomputed point process object.
-        min_pitch (float, optional): Minimum pitch in Hz for pitch analysis. Defaults to 75.
-        max_pitch (float, optional): Maximum pitch in Hz for pitch analysis. Defaults to 500.
+        min_pitch (float, optional): Minimum pitch in Hz. Defaults to 75.
+        max_pitch (float, optional): Maximum pitch in Hz. Defaults to 500.
 
     Returns:
-        dict: A dictionary containing the following shimmer measures:
-            - 'shimmer_local' (str): Local shimmer as a percentage string.
-            - 'shimmer_local_dB' (str): Local shimmer in decibels.
-            - 'shimmer_apq3' (str): Amplitude perturbation quotient (3-point, as percentage string).
-            - 'shimmer_apq5' (str): Amplitude perturbation quotient (5-point, as percentage string).
-            - 'shimmer_apq11' (str): Amplitude perturbation quotient (11-point, as percentage string).
-            - 'shimmer_dda' (str): Difference of differences of amplitudes (as percentage string).
+        dict: Shimmer statistics with keys:
+            'shimmer_local', 'shimmer_local_dB', 'shimmer_apq3', 'shimmer_apq5',
+            'shimmer_apq11', and 'shimmer_dda'. All values are strings formatted as
+            percentages or decibels (e.g. "3.141%" or "0.123 dB").
 
-    Raises:
-        ValueError: If necessary input is missing:
-            - When computing `point_process` but neither `sound_object` nor `audio_path` is provided.
-            - When using a provided `point_process` but neither `sound_object` nor `audio_path` is provided to supply a sound.
-
-    Examples:
-        Basic usage with a WAV file:
-
-        from vocalysis import measure_shimmer
-
-        stats = measure_shimmer(audio_path="example.wav")
-        print(stats["shimmer_local"])  # e.g. '8.340%'
+    Example:
+        >>> from vocalysis import measure_shimmer
+        >>> stats = measure_shimmer(audio_path="path/to/speech.wav")
+        >>> print(stats["shimmer_local"])
+        '8.340%'
     """
     # Step 1: Use provided PointProcess if available
     if point_process is not None:
@@ -386,40 +344,30 @@ def measure_shimmer(audio_path=None, sound_object=None, pitch_object=None, point
 
 def measure_intensity(audio_path=None, sound_object=None, intensity_object=None, time_step=0.01, min_pitch=75.0):
     """
-    Measure intensity statistics (in dB) using Parselmouth.
+    Measure intensity statistics (in dB) from an audio file or Parselmouth object.
 
-    Accepts either an audio file path, a precomputed `Sound` object, or a precomputed
-    `Intensity` object. If multiple inputs are provided, priority is given in the
-    following order:
+    One of `audio_path`, `sound_object`, or `intensity_object` must be provided.
+    If multiple are given, the function uses the first available in this order:
     `intensity_object` > `sound_object` > `audio_path`.
 
     Args:
-        audio_path (str, optional): Path to an audio file. It could be a WAV file or any format supported by Parselmouth. Used if `sound_object` is not provided.
-        sound_object (parselmouth.Sound, optional): Precomputed sound object.
-        intensity_object (parselmouth.Intensity, optional): Precomputed intensity object.
+        audio_path (str, optional): Path to an audio file (WAV or other Parselmouth-supported format).
+        sound_object (parselmouth.Sound, optional): A precomputed sound object.
+        intensity_object (parselmouth.Intensity, optional): A precomputed intensity object.
         time_step (float, optional): Time step in seconds for intensity analysis. Defaults to 0.01.
         min_pitch (float, optional): Minimum pitch in Hz for intensity computation. Defaults to 75.0.
 
     Returns:
-        dict: A dictionary of intensity statistics (in decibels), formatted as strings:
-            - 'intensity_median': Median intensity.
-            - 'intensity_mean': Mean intensity.
-            - 'intensity_std': Standard deviation of intensity.
-            - 'intensity_min': Minimum intensity.
-            - 'intensity_max': Maximum intensity.
+        dict: Intensity statistics with keys:
+            'intensity_median', 'intensity_mean', 'intensity_std',
+            'intensity_min', and 'intensity_max'. Values are strings formatted
+            as decibels (e.g. "81.833 dB"), or None if no valid values found.
 
-            If no valid intensity values are found, all values will be `None`.
-
-    Raises:
-        ValueError: If neither `sound_object` nor `audio_path` is provided and no `intensity_object` is available.
-
-    Examples:
-        Basic usage with a WAV file:
-
-        from vocalysis import measure_intensity
-
-        stats = measure_intensity(audio_path="example.wav")
-        print(stats["intensity_mean"])  # e.g. '81.833 dB'
+    Example:
+        >>> from vocalysis import measure_intensity
+        >>> stats = measure_intensity(audio_path="path/to/speech.wav")
+        >>> print(stats["intensity_mean"])
+        '81.833 dB'
     """
 
     # Step 1: Use provided Intensity object if available
@@ -470,29 +418,23 @@ def get_voice_report(audio_path, min_pitch=75, max_pitch=500, time_step=0.01):
     """
     Generate a comprehensive voice report from an audio file using Parselmouth.
 
-    This function extracts and summarizes multiple acoustic measures from a speech signal,
-    including pitch, jitter, shimmer, harmonicity, intensity, and pulse-based statistics.
-
     Args:
-        audio_path (str, optional): Path to an audio file. It could be a WAV file or any format supported by Parselmouth.
-        min_pitch (float, optional): Minimum pitch in Hz used for pitch, jitter, shimmer, and harmonicity analysis.
-            Defaults to 75.
-        max_pitch (float, optional): Maximum pitch in Hz used for pitch analysis. Defaults to 500.
-        time_step (float, optional): Time step in seconds used for harmonicity and intensity analysis.
-            Defaults to 0.01.
+        audio_path (str): Path to an audio file (WAV or other Parselmouth-supported format).
+        min_pitch (float, optional): Minimum pitch in Hz for pitch, jitter, shimmer, and harmonicity analysis. Defaults to 75.
+        max_pitch (float, optional): Maximum pitch in Hz for pitch analysis. Defaults to 500.
+        time_step (float, optional): Time step in seconds for harmonicity and intensity analysis. Defaults to 0.01.
 
     Returns:
-        dict: A dictionary containing acoustic measurements with the following keys:
-            - 'pitch': Output from `measure_pitch()` (e.g., mean, std, min/max pitch in Hz).
-            - 'pulses': Output from `measure_pulses()` (e.g., number of pulses, periods).
-            - 'jitter': Output from `measure_jitter()` (e.g., local jitter, RAP, PPQ5, etc.).
-            - 'shimmer': Output from `measure_shimmer()` (e.g., shimmer_local, shimmer_apq3, shimmer_apq5, etc.).
-            - 'harmonicity': Output from `measure_harmonicity()` (e.g., mean HNR, NHR, autocorrelation).
-            - 'intensity': Output from `measure_intensity()` (e.g., mean, median, min/max intensity in dB).
+        dict: A dictionary containing acoustic measurements with keys:
+            'Pitch', 'Pulses', 'Voicing', 'Jitter', 'Shimmer', and 'Intensity'.
+            Each key maps to the output dictionary from the respective measurement functions.
 
-    Notes:
-        Internally, this function constructs intermediate Parselmouth objects (Pitch, PointProcess,
-        Harmonicity, Intensity) and passes them to respective helper functions to avoid redundant computation.
+    Example:
+        >>> report = get_voice_report(audio_path="path/to/speech.wav")
+        >>> print(report["Pitch"]["mean"])
+        '142.537 Hz'
+        >>> print(report["Jitter"]["local_jitter"])
+        '4.123 %'
     """
 
     sound = parselmouth.Sound(audio_path)
