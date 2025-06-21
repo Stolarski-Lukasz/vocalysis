@@ -1,0 +1,9 @@
+Metadata-Version: 2.1
+Name: vocalysis
+Version: 0.1.2
+Author: Łukasz Stolarski
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: praat-parselmouth>=0.4.6
+
+# vocalysis
