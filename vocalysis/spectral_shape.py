@@ -1,29 +1,36 @@
-def measure_centroid(audio_path: str) -> dict:
+import parselmouth
+
+
+def measure_spectral_shape(audio_path=None, sound_object=None):
     """
-    Measure the spectral centroid of an audio file.
+    Measure spectral shape descriptors from an audio file or Parselmouth Sound object.
 
     Args:
-        audio_path (str): Path to the audio file.
+        audio_path (str, optional): Path to an audio file.
+        sound_object (parselmouth.Sound, optional): A precomputed sound object.
 
     Returns:
-        dict: A dictionary containing the spectral centroid statistics.
+        dict: Spectral shape statistics:
+            'center_of_gravity', 'std', 'skewness', 'kurtosis'
     """
-    import librosa
-    import numpy as np
+    if sound_object is not None:
+        snd = sound_object
+    elif audio_path is not None:
+        snd = parselmouth.Sound(audio_path)
+    else:
+        raise ValueError("Either 'audio_path' or 'sound_object' must be provided.")
 
-    # Load the audio file
-    y, sr = librosa.load(audio_path, sr=None)
+    spectrum = snd.to_spectrum()  # Equivalent to: parselmouth.praat.call(snd, "To Spectrum", "yes")
 
-    # Calculate the spectral centroid
-    spectral_centroid = librosa.feature.spectral_centroid(y=y, sr=sr)
-
-    # Calculate statistics
-    mean_centroid = np.mean(spectral_centroid)
-    median_centroid = np.median(spectral_centroid)
-    std_centroid = np.std(spectral_centroid)
+    center_of_gravity = parselmouth.praat.call(spectrum, "Get centre of gravity", 2)
+    spread = parselmouth.praat.call(spectrum, "Get standard deviation", 2)
+    skewness = parselmouth.praat.call(spectrum, "Get skewness", 2)
+    kurt = parselmouth.praat.call(spectrum, "Get kurtosis", 2)
 
     return {
-        'mean': mean_centroid,
-        'median': median_centroid,
-        'std': std_centroid
+        'center_of_gravity': f"{center_of_gravity:.2f} Hz",
+        'std': f"{spread:.2f} Hz",
+        'skewness': f"{skewness:.3f}",
+        'kurtosis': f"{kurt:.3f}"
     }
+

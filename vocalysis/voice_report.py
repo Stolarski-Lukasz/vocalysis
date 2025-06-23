@@ -20,33 +20,25 @@ def measure_pitch(audio_path=None, sound_object=None, pitch_object=None, min_pit
     Returns:
         dict: Pitch statistics over voiced frames with keys:
             'median', 'mean', 'std', 'min', and 'max' (all as strings, e.g. "142.537 Hz").
-            If no voiced frames are found, all values are `None`.
-
-    Example:
-        >>> from vocalysis import measure_pitch
-        >>> stats = measure_pitch(audio_path="path/to/speech.wav")
-        >>> print(stats["mean"])
-        '142.537 Hz'
+            If no voiced frames are found, all values are None.
     """
-
     if pitch_object is not None:
         pitch = pitch_object
     elif sound_object is not None:
-        sound = sound_object
-        pitch = sound.to_pitch(pitch_floor=min_pitch, pitch_ceiling=max_pitch)
+        pitch = sound_object.to_pitch(pitch_floor=min_pitch, pitch_ceiling=max_pitch)
     elif audio_path is not None:
         sound = parselmouth.Sound(audio_path)
         pitch = sound.to_pitch(pitch_floor=min_pitch, pitch_ceiling=max_pitch)
     else:
         raise ValueError("Either 'audio_path', 'sound_object', or 'pitch_object' must be provided.")
 
-
-    pitch_values = pitch.selected_array['frequency']
-
-    # Remove unvoiced values (0 Hz)
-    voiced = pitch_values[pitch_values > 0]
-
-    if len(voiced) == 0:
+    try:
+        mean = parselmouth.praat.call(pitch, "Get mean", 0, 0, "Hertz")
+        stdev = parselmouth.praat.call(pitch, "Get standard deviation", 0, 0, "Hertz")
+        minimum = parselmouth.praat.call(pitch, "Get minimum", 0, 0, "Hertz", "Parabolic")
+        maximum = parselmouth.praat.call(pitch, "Get maximum", 0, 0, "Hertz", "Parabolic")
+        median = parselmouth.praat.call(pitch, "Get quantile", 0, 0, 0.5, "Hertz")
+    except RuntimeError:
         return {
             'median': None,
             'mean': None,
@@ -55,15 +47,13 @@ def measure_pitch(audio_path=None, sound_object=None, pitch_object=None, min_pit
             'max': None
         }
 
-    stats = {
-        'median': f"{np.median(voiced):.3f} Hz",
-        'mean': f"{np.mean(voiced):.3f} Hz",
-        'std': f"{np.std(voiced):.3f} Hz",
-        'min': f"{np.min(voiced):.3f} Hz",
-        'max': f"{np.max(voiced):.3f} Hz"
+    return {
+        'median': f"{median:.3f} Hz",
+        'mean': f"{mean:.3f} Hz",
+        'std': f"{stdev:.3f} Hz",
+        'min': f"{minimum:.3f} Hz",
+        'max': f"{maximum:.3f} Hz"
     }
-
-    return stats
 
 
 def measure_pulses(audio_path=None, sound_object=None, pitch_object=None, point_process=None, min_pitch=75, max_pitch=500):
@@ -344,58 +334,35 @@ def measure_shimmer(audio_path=None, sound_object=None, pitch_object=None, point
 
 def measure_intensity(audio_path=None, sound_object=None, intensity_object=None, time_step=0.01, min_pitch=75.0):
     """
-    Measure intensity statistics (in dB) from an audio file or Parselmouth object.
+    Measure intensity statistics (in dB) from an audio file or Parselmouth object using only Praat calls.
 
     One of `audio_path`, `sound_object`, or `intensity_object` must be provided.
     If multiple are given, the function uses the first available in this order:
     `intensity_object` > `sound_object` > `audio_path`.
-
-    Args:
-        audio_path (str, optional): Path to an audio file (WAV or other Parselmouth-supported format).
-        sound_object (parselmouth.Sound, optional): A precomputed sound object.
-        intensity_object (parselmouth.Intensity, optional): A precomputed intensity object.
-        time_step (float, optional): Time step in seconds for intensity analysis. Defaults to 0.01.
-        min_pitch (float, optional): Minimum pitch in Hz for intensity computation. Defaults to 75.0.
 
     Returns:
         dict: Intensity statistics with keys:
             'intensity_median', 'intensity_mean', 'intensity_std',
             'intensity_min', and 'intensity_max'. Values are strings formatted
             as decibels (e.g. "81.833 dB"), or None if no valid values found.
-
-    Example:
-        >>> from vocalysis import measure_intensity
-        >>> stats = measure_intensity(audio_path="path/to/speech.wav")
-        >>> print(stats["intensity_mean"])
-        '81.833 dB'
     """
-
-    # Step 1: Use provided Intensity object if available
+    # Determine Intensity object
     if intensity_object is not None:
         intensity = intensity_object
-        if sound_object is None and audio_path is not None:
-            sound = parselmouth.Sound(audio_path)
-        elif sound_object is not None:
-            sound = sound_object
-        elif audio_path is None:
-            sound = None  # sound is unused if intensity is provided
     else:
-        # Step 2: Ensure we have a sound object
-        if sound_object is not None:
-            sound = sound_object
-        elif audio_path is not None:
-            sound = parselmouth.Sound(audio_path)
-        else:
-            raise ValueError("To compute intensity, either 'sound_object' or 'audio_path' must be provided.")
+        if sound_object is None:
+            if audio_path is None:
+                raise ValueError("To compute intensity, provide at least one of: intensity_object, sound_object, or audio_path.")
+            sound_object = parselmouth.Sound(audio_path)
+        intensity = sound_object.to_intensity(time_step=time_step, minimum_pitch=min_pitch)
 
-        # Step 3: Compute intensity
-        intensity = sound.to_intensity(time_step=time_step, minimum_pitch=min_pitch)
-
-    # Step 4: Extract intensity values and remove NaNs
-    values = intensity.values[0]
-    values = values[~np.isnan(values)]
-
-    if len(values) == 0:
+    try:
+        mean = parselmouth.praat.call(intensity, "Get mean", 0, 0, "dB")
+        stdev = parselmouth.praat.call(intensity, "Get standard deviation", 0, 0)
+        minimum = parselmouth.praat.call(intensity, "Get minimum", 0, 0, "Parabolic")
+        maximum = parselmouth.praat.call(intensity, "Get maximum", 0, 0, "Parabolic")
+        median = parselmouth.praat.call(intensity, "Get quantile", 0, 0, 0.5)
+    except RuntimeError:
         return {
             'intensity_median': None,
             'intensity_mean': None,
@@ -405,11 +372,11 @@ def measure_intensity(audio_path=None, sound_object=None, intensity_object=None,
         }
 
     return {
-        'intensity_median': f"{np.median(values):.3f} dB",
-        'intensity_mean': f"{np.mean(values):.3f} dB",
-        'intensity_std': f"{np.std(values):.3f} dB",
-        'intensity_min': f"{np.min(values):.3f} dB",
-        'intensity_max': f"{np.max(values):.3f} dB"
+        'intensity_median': f"{median:.3f} dB",
+        'intensity_mean': f"{mean:.3f} dB",
+        'intensity_std': f"{stdev:.3f} dB",
+        'intensity_min': f"{minimum:.3f} dB",
+        'intensity_max': f"{maximum:.3f} dB"
     }
 
 
