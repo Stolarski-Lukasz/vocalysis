@@ -180,7 +180,7 @@ A dictionary with the following keys:
 ```
 
 &nbsp;
-## `measure_spectral_shape()`
+## `measure_formant_statistics()`
 This function computes six key statistics for each of the first four formants using Praat's Burg method:
 
 **Returns:**  
