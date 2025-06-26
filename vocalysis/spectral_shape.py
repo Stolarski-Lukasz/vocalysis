@@ -12,6 +12,12 @@ def measure_spectral_shape(audio_path=None, sound_object=None):
     Returns:
         dict: Spectral shape statistics:
             'center_of_gravity', 'std', 'skewness', 'kurtosis'
+
+    Example:
+        >>> from vocalysis import measure_spectral_shape
+        >>> stats = measure_spectral_shape(audio_path="path/to/speech.wav")
+        >>> print(stats['center_of_gravity'])
+        1234.56 Hz
     """
     if sound_object is not None:
         snd = sound_object

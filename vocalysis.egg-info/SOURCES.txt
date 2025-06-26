@@ -2,6 +2,7 @@ LICENSE
 README.md
 setup.py
 vocalysis/__init__.py
+vocalysis/formants.py
 vocalysis/spectral_shape.py
 vocalysis/voice_report.py
 vocalysis.egg-info/PKG-INFO

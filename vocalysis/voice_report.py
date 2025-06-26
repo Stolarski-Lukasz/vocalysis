@@ -21,6 +21,12 @@ def measure_pitch(audio_path=None, sound_object=None, pitch_object=None, min_pit
         dict: Pitch statistics over voiced frames with keys:
             'median', 'mean', 'std', 'min', and 'max' (all as strings, e.g. "142.537 Hz").
             If no voiced frames are found, all values are None.
+    
+    Example:
+        >>> from vocalysis import measure_pitch
+        >>> stats = measure_pitch(audio_path="path/to/speech.wav")
+        >>> print(stats["mean"])
+        '142.537 Hz'
     """
     if pitch_object is not None:
         pitch = pitch_object
@@ -383,18 +389,26 @@ def measure_intensity(audio_path=None, sound_object=None, intensity_object=None,
 
 def get_voice_report(audio_path, min_pitch=75, max_pitch=500, time_step=0.01):
     """
-    Generate a comprehensive voice report from an audio file using Parselmouth.
+    This function serves as a high-level aggregator that performs multiple acoustic analyses, similar to Praat's voice report. 
+    It internally calls dedicated measurement functions defined in this package:
+    measure_pitch, measure_pulses, measure_voicing, measure_jitter, measure_shimmer, and measure_intensity.
 
     Args:
         audio_path (str): Path to an audio file (WAV or other Parselmouth-supported format).
-        min_pitch (float, optional): Minimum pitch in Hz for pitch, jitter, shimmer, and harmonicity analysis. Defaults to 75.
-        max_pitch (float, optional): Maximum pitch in Hz for pitch analysis. Defaults to 500.
-        time_step (float, optional): Time step in seconds for harmonicity and intensity analysis. Defaults to 0.01.
+        min_pitch (float, optional): Minimum pitch in Hz. Defaults to 75.
+        max_pitch (float, optional): Maximum pitch in Hz. Defaults to 500.
+        time_step (float, optional): Time step in seconds for intensity analysis. Defaults to 0.01.
 
     Returns:
-        dict: A dictionary containing acoustic measurements with keys:
-            'Pitch', 'Pulses', 'Voicing', 'Jitter', 'Shimmer', and 'Intensity'.
-            Each key maps to the output dictionary from the respective measurement functions.
+        dict: A dictionary containing acoustic measurements. Each key corresponds to a 
+        type of measurement and maps to a sub-dictionary returned by the respective 
+        measurement function from this package:
+            - 'Pitch': Output of `measure_pitch`
+            - 'Pulses': Output of `measure_pulses`
+            - 'Voicing': Output of `measure_voicing`
+            - 'Jitter': Output of `measure_jitter`
+            - 'Shimmer': Output of `measure_shimmer`
+            - 'Intensity': Output of `measure_intensity`
 
     Example:
         >>> report = get_voice_report(audio_path="path/to/speech.wav")
@@ -407,11 +421,6 @@ def get_voice_report(audio_path, min_pitch=75, max_pitch=500, time_step=0.01):
     sound = parselmouth.Sound(audio_path)
     pitch_object = sound.to_pitch(pitch_floor=min_pitch, pitch_ceiling=max_pitch)
     point_process_object = parselmouth.praat.call([sound, pitch_object], "To PointProcess (cc)")
-    harmonicity = sound.to_harmonicity_ac(
-            time_step=time_step,
-            minimum_pitch=min_pitch,
-            silence_threshold=0.1
-        )
     intensity = sound.to_intensity(time_step=time_step, minimum_pitch=min_pitch)
 
     return {

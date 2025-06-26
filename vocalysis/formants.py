@@ -13,6 +13,12 @@ def measure_formant_statistics(audio_path=None, sound_object=None, formant_ceili
     Returns:
         dict: A dictionary with keys such as 'F1_mean', 'F1_std', 'F1_min', 'F1_max',
               'F1_median', and 'F1_bandwidth_median' for each of the first four formants.
+
+    Example:
+        >>> from vocalysis import measure_formant_statistics
+        >>> stats = measure_formant_statistics(audio_path="path/to/speech.wav")
+        >>> print(stats['F1_mean'])
+        500.00 Hz
     """
     if sound_object is not None:
         snd = sound_object
